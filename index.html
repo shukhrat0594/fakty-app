@@ -58,17 +58,34 @@
   .chip small { opacity: .65; margin-left: 4px; }
 
   /* Flashcard */
-  .fc-wrap { perspective: 1200px; }
+  .fc-wrap { perspective: 1400px; overflow: visible; }
   .fc {
     position: relative; display: grid; grid-template-areas: "stack";
-    cursor: pointer; transform-style: preserve-3d; transition: transform .45s;
+    cursor: pointer; transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.34,1.4,.44,1); /* пружинный переворот */
+    touch-action: pan-y; user-select: none; -webkit-user-select: none;
   }
   .fc.flip { transform: rotateY(180deg); }
-  .fc { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-  .fc.slide-left { transform: translateX(-110%) rotate(-4deg); opacity: 0; transition: transform .25s ease-in, opacity .25s; }
-  .fc.slide-right { transform: translateX(110%) rotate(4deg); opacity: 0; transition: transform .25s ease-in, opacity .25s; }
-  .fc.flip.slide-left { transform: rotateY(180deg) translateX(110%) rotate(4deg); }
-  .fc.flip.slide-right { transform: rotateY(180deg) translateX(-110%) rotate(-4deg); }
+  /* вылет старой карточки при свайпе */
+  .fc.slide-left  { transform: translateX(-130%) rotate(-10deg) scale(.9); opacity: 0;
+                    transition: transform .3s cubic-bezier(.5,0,.9,.5), opacity .28s; }
+  .fc.slide-right { transform: translateX(130%) rotate(10deg) scale(.9); opacity: 0;
+                    transition: transform .3s cubic-bezier(.5,0,.9,.5), opacity .28s; }
+  .fc.flip.slide-left  { transform: rotateY(180deg) translateX(130%) rotate(10deg) scale(.9); }
+  .fc.flip.slide-right { transform: rotateY(180deg) translateX(-130%) rotate(-10deg) scale(.9); }
+  /* прилёт новой карточки */
+  @keyframes fc-in-left {
+    from { transform: translateX(60%) rotate(6deg) scale(.92); opacity: 0; }
+    60%  { transform: translateX(-2%) rotate(-.5deg) scale(1.01); opacity: 1; }
+    to   { transform: translateX(0) rotate(0) scale(1); opacity: 1; }
+  }
+  @keyframes fc-in-right {
+    from { transform: translateX(-60%) rotate(-6deg) scale(.92); opacity: 0; }
+    60%  { transform: translateX(2%) rotate(.5deg) scale(1.01); opacity: 1; }
+    to   { transform: translateX(0) rotate(0) scale(1); opacity: 1; }
+  }
+  .fc.enter-left  { animation: fc-in-left .38s cubic-bezier(.22,1,.36,1); }
+  .fc.enter-right { animation: fc-in-right .38s cubic-bezier(.22,1,.36,1); }
   .face {
     position: relative; grid-area: stack; min-height: 300px; max-height: 70vh;
     backface-visibility: hidden;
@@ -223,15 +240,17 @@ function renderChips() {
 }
 
 // ---------- flashcards ----------
-let deck = [], deckPos = 0, deckKey = '';
+let deck = [], deckPos = 0, deckKey = '', enterDir = '';
 function renderCards() {
   const v = document.getElementById('view');
   const key = cat;
   if (deckKey !== key || !deck.length) { deck = shuffle(cardable()); deckPos = 0; deckKey = key; }
   if (!deck.length) { v.innerHTML = `<p>${T.empty}</p>`; return; }
   const rec = deck[deckPos], loc = localize(rec);
+  const enterCls = enterDir ? ' enter-' + enterDir : '';
+  enterDir = '';
   v.innerHTML = `
-    <div class="fc-wrap"><div class="fc" id="fc">
+    <div class="fc-wrap"><div class="fc${enterCls}" id="fc">
       <div class="face front">
         <div class="cat">${esc(catName(rec.cat))}</div>
         <div class="front-text">${esc(loc.front)}</div>
@@ -253,8 +272,9 @@ function renderCards() {
     fcEl.classList.add(step > 0 ? 'slide-left' : 'slide-right');
     setTimeout(() => {
       deckPos = (deckPos + step + deck.length) % deck.length;
+      enterDir = step > 0 ? 'left' : 'right';
       renderCards();
-    }, 250);
+    }, 280);
   }
   // тап — переворот; свайп влево/вправо — следующая/предыдущая карточка
   let startX = 0, startY = 0;
