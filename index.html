@@ -60,12 +60,13 @@
   /* Flashcard */
   .fc-wrap { perspective: 1200px; }
   .fc {
-    position: relative; min-height: 300px; cursor: pointer;
-    transform-style: preserve-3d; transition: transform .45s;
+    position: relative; display: grid; grid-template-areas: "stack";
+    cursor: pointer; transform-style: preserve-3d; transition: transform .45s;
   }
   .fc.flip { transform: rotateY(180deg); }
   .face {
-    position: absolute; inset: 0; backface-visibility: hidden;
+    position: relative; grid-area: stack; min-height: 300px; max-height: 70vh;
+    backface-visibility: hidden;
     background: var(--card); border: 1px solid var(--border); border-radius: 16px;
     box-shadow: var(--shadow); padding: 28px; overflow-y: auto;
     display: flex; flex-direction: column; justify-content: center; text-align: center;
@@ -244,9 +245,22 @@ function renderCards() {
       <button class="btn primary" id="next">${T.next}</button>
     </div>
     <div class="counter">${deckPos + 1} / ${deck.length}</div>`;
-  document.getElementById('fc').onclick = e => e.currentTarget.classList.toggle('flip');
-  document.getElementById('next').onclick = () => { deckPos = (deckPos + 1) % deck.length; renderCards(); };
-  document.getElementById('prev').onclick = () => { deckPos = (deckPos - 1 + deck.length) % deck.length; renderCards(); };
+  const fcEl = document.getElementById('fc');
+  fcEl.onclick = e => e.currentTarget.classList.toggle('flip');
+  function goTo(step) {
+    const advance = () => {
+      deckPos = (deckPos + step + deck.length) % deck.length;
+      renderCards();
+    };
+    if (fcEl.classList.contains('flip')) {
+      fcEl.classList.remove('flip');
+      setTimeout(advance, 450);
+    } else {
+      advance();
+    }
+  }
+  document.getElementById('next').onclick = () => goTo(1);
+  document.getElementById('prev').onclick = () => goTo(-1);
   document.getElementById('shuf').onclick = () => { shuffle(deck); deckPos = 0; renderCards(); };
 }
 
