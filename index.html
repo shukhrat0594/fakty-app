@@ -151,6 +151,7 @@
 <header>
   <h1 id="title">Факты</h1>
   <div class="seg" id="modeSeg"></div>
+  <button class="theme-btn" id="langBtn" title="Til / Язык"></button>
   <button class="theme-btn" id="themeBtn" title="Тёмная/светлая тема"></button>
 </header>
 <main>
@@ -159,6 +160,7 @@
 </main>
 
 <script src="data.js"></script>
+<script src="uz.js"></script>
 <script>
 (function () {
   const saved = localStorage.getItem('fakty-theme');
@@ -182,30 +184,76 @@ function renderThemeBtn() {
 }
 renderThemeBtn();
 
-const T = {
-  cards: 'Карточки', list: 'Список', quiz: 'Викторина',
-  all: 'Все', flip: 'ответ — нажмите', next: 'Дальше →', prev: '← Назад',
-  search: 'Поиск…', more: 'Показать ещё',
-  correct: 'Верно', wrong: 'Ошибок', streak: 'Подряд', nextQ: 'Следующий вопрос →',
-  empty: 'Ничего не найдено',
+// langBtn инициализируется ниже, после объявления I18N/renderLangBtn
+
+const I18N = {
+  ru: {
+    title: 'Факты', cards: 'Карточки', list: 'Список', quiz: 'Викторина',
+    all: 'Все', flip: 'ответ — нажмите', next: 'Дальше →', prev: '← Назад',
+    search: 'Поиск…', more: 'Показать ещё',
+    correct: 'Верно', wrong: 'Ошибок', streak: 'Подряд', nextQ: 'Следующий вопрос →',
+    empty: 'Ничего не найдено',
+  },
+  uz: {
+    title: 'Faktlar', cards: 'Kartochkalar', list: 'Roʻyxat', quiz: 'Viktorina',
+    all: 'Hammasi', flip: 'javob — bosing', next: 'Keyingi →', prev: '← Oldingi',
+    search: 'Qidiruv…', more: 'Yana koʻrsatish',
+    correct: 'Toʻgʻri', wrong: 'Xato', streak: 'Ketma-ket', nextQ: 'Keyingi savol →',
+    empty: 'Hech narsa topilmadi',
+  }
+};
+const CATS_UZ = {
+  'Рандом': 'Aralash', 'История': 'Tarix', 'Литература': 'Adabiyot',
+  'Цитаты': 'Iqtiboslar', 'Науки': 'Fanlar', 'Шекспир': 'Shekspir',
+  'Греки': 'Yunonlar', 'Христианство': 'Xristianlik', 'Искусство': 'Sanʼat',
+  'Спорт': 'Sport', 'Перифразы': 'Perifrazalar', 'Прототипы': 'Prototiplar',
+  'Псевдонимы': 'Taxalluslar', 'Имена разных стран': 'Turli mamlakat ismlari',
+  'Олимпийские игры': 'Olimpiya oʻyinlari', 'Нобелевские лауреаты': 'Nobel laureatlari',
+  'Латинские выражения': 'Lotin iboralari'
 };
 
+let lang = localStorage.getItem('fakty-lang') || 'ru';
+let T = I18N[lang];
 let mode = localStorage.getItem('fakty-mode') || 'cards';
 let cat = 'all';
-const catName = c => c;
+const catName = c => lang === 'uz' ? (CATS_UZ[c] || c) : c;
+
+function renderLangBtn() {
+  const btn = document.getElementById('langBtn');
+  btn.textContent = lang === 'uz' ? 'RU' : 'UZ';
+  btn.onclick = () => {
+    lang = lang === 'uz' ? 'ru' : 'uz';
+    T = I18N[lang];
+    localStorage.setItem('fakty-lang', lang);
+    document.getElementById('title').textContent = T.title;
+    renderLangBtn();
+    render();
+  };
+}
 
 // --- Единый список записей для карточек/списка/викторины
-// each: {front, back, note}
+// each: {front, back, note, hasUz}
 function localize(rec) {
+  const uz = (typeof UZ !== 'undefined' && UZ[rec.id]) || null;
   if (rec.q !== undefined) { // pair
-    return { front: rec.q, back: rec.a, note: rec.note };
+    if (lang === 'uz' && uz) {
+      return { front: uz.q || rec.q, back: uz.a || rec.a, note: uz.n || rec.note, hasUz: true };
+    }
+    return { front: rec.q, back: rec.a, note: rec.note, hasUz: lang !== 'uz' || !!uz };
   }
   // fact
   if (rec.term) {
-    return { front: rec.term, back: rec.def, note: null };
+    if (lang === 'uz' && uz && uz.d) {
+      return { front: rec.term, back: uz.d, note: null, hasUz: true };
+    }
+    return { front: rec.term, back: rec.def, note: null, hasUz: lang !== 'uz' };
   }
-  return { front: null, back: rec.text, note: null };
+  if (lang === 'uz' && uz && uz.t) {
+    return { front: null, back: uz.t, note: null, hasUz: true };
+  }
+  return { front: null, back: rec.text, note: null, hasUz: lang !== 'uz' };
 }
+const ruMark = loc => loc.hasUz ? '' : ' <span class="ru-mark">RU</span>';
 const ALL = [...DATA.pairs, ...DATA.facts];
 const cats = [...new Set(ALL.map(r => r.cat))];
 
@@ -263,7 +311,7 @@ function renderCards() {
       </div>
       <div class="face back">
         <div class="cat">${esc(catName(rec.cat))}</div>
-        <div style="margin-top:18px"><b>${esc(loc.front)}</b></div>
+        <div style="margin-top:18px"><b>${esc(loc.front)}</b>${ruMark(loc)}</div>
         <div style="margin-top:8px">${esc(loc.back)}</div>
         ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
       </div>
@@ -335,7 +383,7 @@ function renderList() {
       (slice.map(({ r, loc }) => `
         <div class="item">
           <div class="cat">${esc(catName(r.cat))}</div>
-          ${loc.front ? `<b>${esc(loc.front)}</b> — ` : ''}${esc(loc.back)}
+          ${loc.front ? `<b>${esc(loc.front)}</b>${ruMark(loc)} — ` : ''}${esc(loc.back)}${loc.front ? '' : ruMark(loc)}
           ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
         </div>`).join('') || `<p>${T.empty}</p>`) +
       (rows.length > listLimit ? `<button class="btn more" id="more">${T.more} (${rows.length - listLimit})</button>` : '');
@@ -363,7 +411,7 @@ function renderQuiz() {
     </div>
     <div class="q-card">
       <div class="cat" style="font-size:12px;color:var(--muted);margin-bottom:6px">${esc(catName(rec.cat))}</div>
-      <div class="q-text">${esc(loc.front)}</div>
+      <div class="q-text">${esc(loc.front)}${ruMark(loc)}</div>
       <div class="opts">${opts.map((o, i) =>
         `<button class="opt" data-i="${i}">${esc(o.loc.back)}</button>`).join('')}</div>
       <div class="q-note" id="qnote"></div>
@@ -386,6 +434,8 @@ function render() {
   renderHeader(); renderChips();
   ({ cards: renderCards, list: renderList, quiz: renderQuiz })[mode]();
 }
+renderLangBtn();
+document.getElementById('title').textContent = T.title;
 render();
 </script>
 </body>
