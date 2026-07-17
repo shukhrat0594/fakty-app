@@ -64,6 +64,11 @@
     cursor: pointer; transform-style: preserve-3d; transition: transform .45s;
   }
   .fc.flip { transform: rotateY(180deg); }
+  .fc { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .fc.slide-left { transform: translateX(-110%) rotate(-4deg); opacity: 0; transition: transform .25s ease-in, opacity .25s; }
+  .fc.slide-right { transform: translateX(110%) rotate(4deg); opacity: 0; transition: transform .25s ease-in, opacity .25s; }
+  .fc.flip.slide-left { transform: rotateY(180deg) translateX(110%) rotate(4deg); }
+  .fc.flip.slide-right { transform: rotateY(180deg) translateX(-110%) rotate(-4deg); }
   .face {
     position: relative; grid-area: stack; min-height: 300px; max-height: 70vh;
     backface-visibility: hidden;
@@ -157,8 +162,8 @@ renderThemeBtn();
 
 const T = {
   cards: 'Карточки', list: 'Список', quiz: 'Викторина',
-  all: 'Все', flip: 'ответ — нажмите', next: 'Дальше →', prev: '← Назад',
-  shuffle: '🔀 Перемешать', search: 'Поиск…', more: 'Показать ещё',
+  all: 'Все', flip: 'ответ — нажмите', swipeHint: 'свайп ←→ листает',
+  search: 'Поиск…', more: 'Показать ещё',
   correct: 'Верно', wrong: 'Ошибок', streak: 'Подряд', nextQ: 'Следующий вопрос →',
   empty: 'Ничего не найдено',
 };
@@ -239,44 +244,35 @@ function renderCards() {
         ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
       </div>
     </div></div>
-    <div class="fc-nav">
-      <button class="btn" id="prev">${T.prev}</button>
-      <button class="btn" id="shuf">${T.shuffle}</button>
-      <button class="btn primary" id="next">${T.next}</button>
-    </div>
-    <div class="counter">${deckPos + 1} / ${deck.length}</div>`;
+    <div class="counter">${deckPos + 1} / ${deck.length} · ${T.swipeHint}</div>`;
   const fcEl = document.getElementById('fc');
-  const navBtns = [document.getElementById('prev'), document.getElementById('shuf'), document.getElementById('next')];
-  fcEl.onclick = e => e.currentTarget.classList.toggle('flip');
+  let animating = false;
   function goTo(step) {
-    const advance = () => {
+    if (animating) return;
+    animating = true;
+    fcEl.classList.add(step > 0 ? 'slide-left' : 'slide-right');
+    setTimeout(() => {
       deckPos = (deckPos + step + deck.length) % deck.length;
       renderCards();
-    };
-    if (fcEl.classList.contains('flip')) {
-      navBtns.forEach(b => b.disabled = true);
-      fcEl.classList.remove('flip');
-      setTimeout(advance, 450);
-    } else {
-      advance();
-    }
+    }, 250);
   }
-  document.getElementById('next').onclick = () => {
-    if (!fcEl.classList.contains('flip')) {
-      fcEl.classList.add('flip');
-    } else {
-      goTo(1);
+  // тап — переворот; свайп влево/вправо — следующая/предыдущая карточка
+  let startX = 0, startY = 0;
+  fcEl.addEventListener('pointerdown', e => { startX = e.clientX; startY = e.clientY; });
+  fcEl.addEventListener('pointerup', e => {
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      goTo(dx < 0 ? 1 : -1);
+    } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      if (!animating) fcEl.classList.toggle('flip');
     }
-  };
-  document.getElementById('prev').onclick = () => goTo(-1);
-  document.getElementById('shuf').onclick = () => {
-    if (fcEl.classList.contains('flip')) {
-      navBtns.forEach(b => b.disabled = true);
-      fcEl.classList.remove('flip');
-      setTimeout(() => { shuffle(deck); deckPos = 0; renderCards(); }, 450);
-    } else {
-      shuffle(deck); deckPos = 0; renderCards();
-    }
+  });
+  // на десктопе — стрелки клавиатуры
+  document.onkeydown = e => {
+    if (mode !== 'cards') return;
+    if (e.key === 'ArrowRight') goTo(1);
+    else if (e.key === 'ArrowLeft') goTo(-1);
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!animating) fcEl.classList.toggle('flip'); }
   };
 }
 
