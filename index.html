@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Факты</title>
+<style>
+  :root {
+    --bg: #f4f2ec; --card: #ffffff; --ink: #1f2328; --muted: #6b7280;
+    --accent: #3b6b4f; --accent-ink: #ffffff; --chip: #e7e3d8; --chip-on: #3b6b4f;
+    --border: #ddd8ca; --good: #2e7d32; --bad: #c62828; --shadow: 0 2px 10px rgba(0,0,0,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --card: #1e2328; --ink: #e8e6e0; --muted: #9aa0a6;
+      --accent: #6fae8a; --accent-ink: #10241a; --chip: #2a3138; --chip-on: #6fae8a;
+      --border: #333a41; --shadow: 0 2px 10px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 system-ui, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; padding-bottom: 40px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 5;
+  }
+  h1 { font-size: 20px; margin-right: auto; }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    border: 0; background: transparent; color: var(--ink);
+    padding: 7px 14px; cursor: pointer; font-size: 14px;
+  }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; }
+  .chip {
+    background: var(--chip); border: 1px solid var(--border); color: var(--ink);
+    border-radius: 999px; padding: 5px 13px; font-size: 13px; cursor: pointer;
+  }
+  .chip.on { background: var(--chip-on); color: var(--accent-ink); border-color: var(--chip-on); }
+  .chip small { opacity: .65; margin-left: 4px; }
+
+  /* Flashcard */
+  .fc-wrap { perspective: 1200px; }
+  .fc {
+    position: relative; min-height: 300px; cursor: pointer;
+    transform-style: preserve-3d; transition: transform .45s;
+  }
+  .fc.flip { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 28px; overflow-y: auto;
+    display: flex; flex-direction: column; justify-content: center; text-align: center;
+  }
+  .face.back { transform: rotateY(180deg); text-align: left; justify-content: flex-start; }
+  .face .cat { position: absolute; top: 12px; left: 16px; font-size: 12px; color: var(--muted); }
+  .face .hint { position: absolute; bottom: 10px; right: 16px; font-size: 12px; color: var(--muted); }
+  .front-text { font-size: 24px; font-weight: 600; }
+  .back .note { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .ru-mark { font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+             border-radius: 6px; padding: 0 5px; margin-left: 6px; vertical-align: 2px; }
+  .fc-nav { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .btn {
+    background: var(--card); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 18px; font-size: 15px; cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .counter { text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px; }
+
+  /* List */
+  .search {
+    width: 100%; padding: 10px 14px; font-size: 15px; margin-bottom: 14px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--ink);
+  }
+  .item {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+  }
+  .item .cat { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .item b { font-weight: 600; }
+  .item .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .more { display: block; margin: 14px auto; }
+
+  /* Quiz */
+  .q-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 24px;
+  }
+  .q-text { font-size: 19px; font-weight: 600; margin-bottom: 18px; }
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    text-align: left; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; font-size: 15px; cursor: pointer; color: var(--ink);
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt.correct { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--bg)); }
+  .opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--bg)); }
+  .opt:disabled { cursor: default; }
+  .q-note { margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .scorebar { display: flex; gap: 18px; margin-bottom: 14px; color: var(--muted); font-size: 14px; }
+  .scorebar b { color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Факты</h1>
+  <div class="seg" id="modeSeg"></div>
+</header>
+<main>
+  <div class="chips" id="chips"></div>
+  <div id="view"></div>
+</main>
+
+<script src="data.js"></script>
+<script>
+const T = {
+  cards: 'Карточки', list: 'Список', quiz: 'Викторина',
+  all: 'Все', flip: 'ответ — нажмите', next: 'Дальше →', prev: '← Назад',
+  shuffle: '🔀 Перемешать', search: 'Поиск…', more: 'Показать ещё',
+  correct: 'Верно', wrong: 'Ошибок', streak: 'Подряд', nextQ: 'Следующий вопрос →',
+  empty: 'Ничего не найдено',
+};
+
+let mode = localStorage.getItem('fakty-mode') || 'cards';
+let cat = 'all';
+const catName = c => c;
+
+// --- Единый список записей для карточек/списка/викторины
+// each: {front, back, note}
+function localize(rec) {
+  if (rec.q !== undefined) { // pair
+    return { front: rec.q, back: rec.a, note: rec.note };
+  }
+  // fact
+  if (rec.term) {
+    return { front: rec.term, back: rec.def, note: null };
+  }
+  return { front: null, back: rec.text, note: null };
+}
+const ALL = [...DATA.pairs, ...DATA.facts];
+const cats = [...new Set(ALL.map(r => r.cat))];
+
+function filtered() {
+  return ALL.filter(r => cat === 'all' || r.cat === cat);
+}
+function cardable() { // для флешкарт и викторины нужен front
+  return filtered().filter(r => r.q !== undefined || r.term);
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- header / chips ----------
+function renderHeader() {
+  const seg = document.getElementById('modeSeg');
+  seg.innerHTML = ['cards', 'list', 'quiz']
+    .map(m => `<button data-mode="${m}" class="${m === mode ? 'on' : ''}">${T[m]}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => {
+    mode = b.dataset.mode; localStorage.setItem('fakty-mode', mode); render();
+  });
+}
+function renderChips() {
+  const el = document.getElementById('chips');
+  const counts = {};
+  ALL.forEach(r => counts[r.cat] = (counts[r.cat] || 0) + 1);
+  el.innerHTML =
+    `<button class="chip ${cat === 'all' ? 'on' : ''}" data-c="all">${T.all}<small>${ALL.length}</small></button>` +
+    cats.map(c =>
+      `<button class="chip ${cat === c ? 'on' : ''}" data-c="${esc(c)}">${esc(catName(c))}<small>${counts[c]}</small></button>`
+    ).join('');
+  el.querySelectorAll('.chip').forEach(b => b.onclick = () => { cat = b.dataset.c; render(); });
+}
+
+// ---------- flashcards ----------
+let deck = [], deckPos = 0, deckKey = '';
+function renderCards() {
+  const v = document.getElementById('view');
+  const key = cat;
+  if (deckKey !== key || !deck.length) { deck = shuffle(cardable()); deckPos = 0; deckKey = key; }
+  if (!deck.length) { v.innerHTML = `<p>${T.empty}</p>`; return; }
+  const rec = deck[deckPos], loc = localize(rec);
+  v.innerHTML = `
+    <div class="fc-wrap"><div class="fc" id="fc">
+      <div class="face front">
+        <div class="cat">${esc(catName(rec.cat))}</div>
+        <div class="front-text">${esc(loc.front)}</div>
+        <div class="hint">${T.flip}</div>
+      </div>
+      <div class="face back">
+        <div class="cat">${esc(catName(rec.cat))}</div>
+        <div style="margin-top:18px"><b>${esc(loc.front)}</b></div>
+        <div style="margin-top:8px">${esc(loc.back)}</div>
+        ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
+      </div>
+    </div></div>
+    <div class="fc-nav">
+      <button class="btn" id="prev">${T.prev}</button>
+      <button class="btn" id="shuf">${T.shuffle}</button>
+      <button class="btn primary" id="next">${T.next}</button>
+    </div>
+    <div class="counter">${deckPos + 1} / ${deck.length}</div>`;
+  document.getElementById('fc').onclick = e => e.currentTarget.classList.toggle('flip');
+  document.getElementById('next').onclick = () => { deckPos = (deckPos + 1) % deck.length; renderCards(); };
+  document.getElementById('prev').onclick = () => { deckPos = (deckPos - 1 + deck.length) % deck.length; renderCards(); };
+  document.getElementById('shuf').onclick = () => { shuffle(deck); deckPos = 0; renderCards(); };
+}
+
+// ---------- list ----------
+let listLimit = 50, query = '';
+function renderList() {
+  const v = document.getElementById('view');
+  v.innerHTML = `<input class="search" id="q" placeholder="${T.search}" value="${esc(query)}">
+                 <div id="items"></div>`;
+  const inp = document.getElementById('q');
+  inp.oninput = () => { query = inp.value; listLimit = 50; drawItems(); };
+  drawItems();
+  function drawItems() {
+    const ql = query.trim().toLowerCase();
+    const rows = filtered().map(r => ({ r, loc: localize(r) }))
+      .filter(({ r, loc }) => !ql ||
+        [loc.front, loc.back, loc.note, r.text, r.q, r.a].some(s => s && String(s).toLowerCase().includes(ql)));
+    const slice = rows.slice(0, listLimit);
+    document.getElementById('items').innerHTML =
+      (slice.map(({ r, loc }) => `
+        <div class="item">
+          <div class="cat">${esc(catName(r.cat))}</div>
+          ${loc.front ? `<b>${esc(loc.front)}</b> — ` : ''}${esc(loc.back)}
+          ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
+        </div>`).join('') || `<p>${T.empty}</p>`) +
+      (rows.length > listLimit ? `<button class="btn more" id="more">${T.more} (${rows.length - listLimit})</button>` : '');
+    const more = document.getElementById('more');
+    if (more) more.onclick = () => { listLimit += 50; drawItems(); };
+  }
+}
+
+// ---------- quiz ----------
+let score = { ok: 0, bad: 0, streak: 0 };
+function renderQuiz() {
+  const v = document.getElementById('view');
+  const pool = cardable();
+  if (pool.length < 4) { v.innerHTML = `<p>${T.empty}</p>`; return; }
+  const rec = pool[Math.floor(Math.random() * pool.length)];
+  const loc = localize(rec);
+  const sameCat = pool.filter(r => r.cat === rec.cat && r.id !== rec.id);
+  const others = shuffle(sameCat.length >= 3 ? sameCat : pool.filter(r => r.id !== rec.id)).slice(0, 3);
+  const opts = shuffle([{ rec, loc, ok: true }, ...others.map(r => ({ rec: r, loc: localize(r), ok: false }))]);
+  v.innerHTML = `
+    <div class="scorebar">
+      <span>✅ ${T.correct}: <b>${score.ok}</b></span>
+      <span>❌ ${T.wrong}: <b>${score.bad}</b></span>
+      <span>🔥 ${T.streak}: <b>${score.streak}</b></span>
+    </div>
+    <div class="q-card">
+      <div class="cat" style="font-size:12px;color:var(--muted);margin-bottom:6px">${esc(catName(rec.cat))}</div>
+      <div class="q-text">${esc(loc.front)}</div>
+      <div class="opts">${opts.map((o, i) =>
+        `<button class="opt" data-i="${i}">${esc(o.loc.back)}</button>`).join('')}</div>
+      <div class="q-note" id="qnote"></div>
+    </div>`;
+  const btns = [...v.querySelectorAll('.opt')];
+  btns.forEach((b, i) => b.onclick = () => {
+    btns.forEach(x => x.disabled = true);
+    const chosen = opts[i];
+    btns[opts.findIndex(o => o.ok)].classList.add('correct');
+    if (chosen.ok) { score.ok++; score.streak++; }
+    else { score.bad++; score.streak = 0; b.classList.add('wrong'); }
+    const note = loc.note ? esc(loc.note) + '<br>' : '';
+    document.getElementById('qnote').innerHTML =
+      note + `<button class="btn primary" style="margin-top:10px" id="nq">${T.nextQ}</button>`;
+    document.getElementById('nq').onclick = renderQuiz;
+  });
+}
+
+function render() {
+  renderHeader(); renderChips();
+  ({ cards: renderCards, list: renderList, quiz: renderQuiz })[mode]();
+}
+render();
+</script>
+</body>
+</html>
