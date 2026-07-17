@@ -246,6 +246,7 @@ function renderCards() {
     </div>
     <div class="counter">${deckPos + 1} / ${deck.length}</div>`;
   const fcEl = document.getElementById('fc');
+  const navBtns = [document.getElementById('prev'), document.getElementById('shuf'), document.getElementById('next')];
   fcEl.onclick = e => e.currentTarget.classList.toggle('flip');
   function goTo(step) {
     const advance = () => {
@@ -253,15 +254,30 @@ function renderCards() {
       renderCards();
     };
     if (fcEl.classList.contains('flip')) {
+      navBtns.forEach(b => b.disabled = true);
       fcEl.classList.remove('flip');
       setTimeout(advance, 450);
     } else {
       advance();
     }
   }
-  document.getElementById('next').onclick = () => goTo(1);
+  document.getElementById('next').onclick = () => {
+    if (!fcEl.classList.contains('flip')) {
+      fcEl.classList.add('flip');
+    } else {
+      goTo(1);
+    }
+  };
   document.getElementById('prev').onclick = () => goTo(-1);
-  document.getElementById('shuf').onclick = () => { shuffle(deck); deckPos = 0; renderCards(); };
+  document.getElementById('shuf').onclick = () => {
+    if (fcEl.classList.contains('flip')) {
+      navBtns.forEach(b => b.disabled = true);
+      fcEl.classList.remove('flip');
+      setTimeout(() => { shuffle(deck); deckPos = 0; renderCards(); }, 450);
+    } else {
+      shuffle(deck); deckPos = 0; renderCards();
+    }
+  };
 }
 
 // ---------- list ----------
