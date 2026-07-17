@@ -27,8 +27,8 @@
   }
   .theme-btn {
     border: 1px solid var(--border); background: var(--card); color: var(--ink);
-    border-radius: 10px; width: 38px; height: 38px; font-size: 17px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; width: 34px; height: 34px; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   * { box-sizing: border-box; margin: 0; }
   body {
@@ -37,15 +37,20 @@
     min-height: 100vh; padding-bottom: 40px;
   }
   header {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
     position: sticky; top: 0; background: var(--bg); z-index: 5;
   }
-  h1 { font-size: 20px; margin-right: auto; }
-  .seg { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  h1 { font-size: 17px; margin-right: auto; white-space: nowrap; }
+  .seg { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex-shrink: 0; }
   .seg button {
     border: 0; background: transparent; color: var(--ink);
-    padding: 7px 14px; cursor: pointer; font-size: 14px;
+    padding: 7px 10px; cursor: pointer; font-size: 13px; white-space: nowrap;
+  }
+  @media (max-width: 420px) {
+    h1 { display: none; }
+    .seg button { padding: 7px 9px; font-size: 12.5px; }
+    header { justify-content: space-between; }
   }
   .seg button.on { background: var(--accent); color: var(--accent-ink); }
   main { max-width: 860px; margin: 0 auto; padding: 16px; }
@@ -179,7 +184,7 @@ renderThemeBtn();
 
 const T = {
   cards: 'Карточки', list: 'Список', quiz: 'Викторина',
-  all: 'Все', flip: 'ответ — нажмите', swipeHint: 'свайп ←→ листает',
+  all: 'Все', flip: 'ответ — нажмите', next: 'Дальше →', prev: '← Назад',
   search: 'Поиск…', more: 'Показать ещё',
   correct: 'Верно', wrong: 'Ошибок', streak: 'Подряд', nextQ: 'Следующий вопрос →',
   empty: 'Ничего не найдено',
@@ -263,7 +268,11 @@ function renderCards() {
         ${loc.note ? `<div class="note">${esc(loc.note)}</div>` : ''}
       </div>
     </div></div>
-    <div class="counter">${deckPos + 1} / ${deck.length} · ${T.swipeHint}</div>`;
+    <div class="fc-nav">
+      <button class="btn" id="prev">${T.prev}</button>
+      <button class="btn primary" id="next">${T.next}</button>
+    </div>
+    <div class="counter">${deckPos + 1} / ${deck.length}</div>`;
   const fcEl = document.getElementById('fc');
   let animating = false;
   function goTo(step) {
@@ -276,17 +285,28 @@ function renderCards() {
       renderCards();
     }, 280);
   }
-  // тап — переворот; свайп влево/вправо — следующая/предыдущая карточка
-  let startX = 0, startY = 0;
-  fcEl.addEventListener('pointerdown', e => { startX = e.clientX; startY = e.clientY; });
-  fcEl.addEventListener('pointerup', e => {
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      goTo(dx < 0 ? 1 : -1);
-    } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-      if (!animating) fcEl.classList.toggle('flip');
-    }
+  // кнопки: без переворота, просто следующая/предыдущая со slide-анимацией
+  document.getElementById('next').onclick = () => goTo(1);
+  document.getElementById('prev').onclick = () => goTo(-1);
+  // тап по карточке — переворот
+  let swiped = false;
+  fcEl.addEventListener('click', () => {
+    if (swiped) { swiped = false; return; }
+    if (!animating) fcEl.classList.toggle('flip');
   });
+  // свайп: touch-события (телефон) + pointer для мыши
+  let sx = 0, sy = 0;
+  const trySwipe = (dx, dy) => {
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { goTo(dx < 0 ? 1 : -1); return true; }
+    return false;
+  };
+  fcEl.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  fcEl.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    swiped = trySwipe(t.clientX - sx, t.clientY - sy);
+  }, { passive: true });
+  fcEl.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') { sx = e.clientX; sy = e.clientY; } });
+  fcEl.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') { swiped = trySwipe(e.clientX - sx, e.clientY - sy); } });
   // на десктопе — стрелки клавиатуры
   document.onkeydown = e => {
     if (mode !== 'cards') return;
