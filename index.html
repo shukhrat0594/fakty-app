@@ -237,16 +237,17 @@ function localize(rec) {
   const uz = (typeof UZ !== 'undefined' && UZ[rec.id]) || null;
   if (rec.q !== undefined) { // pair
     if (lang === 'uz' && uz) {
-      return { front: uz.q || rec.q, back: uz.a || rec.a, note: uz.n || rec.note, hasUz: true };
+      return { front: uz.q || rec.q, back: uz.a || uz.at || rec.a, note: uz.n || rec.note, hasUz: true };
     }
     return { front: rec.q, back: rec.a, note: rec.note, hasUz: lang !== 'uz' || !!uz };
   }
   // fact
   if (rec.term) {
+    const front = (lang === 'uz' && uz && uz.tm) ? uz.tm : rec.term;
     if (lang === 'uz' && uz && uz.d) {
-      return { front: rec.term, back: uz.d, note: null, hasUz: true };
+      return { front, back: uz.d, note: null, hasUz: true };
     }
-    return { front: rec.term, back: rec.def, note: null, hasUz: lang !== 'uz' };
+    return { front, back: rec.def, note: null, hasUz: lang !== 'uz' };
   }
   if (lang === 'uz' && uz && uz.t) {
     return { front: null, back: uz.t, note: null, hasUz: true };
